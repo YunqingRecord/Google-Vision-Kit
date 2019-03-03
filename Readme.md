@@ -10,7 +10,7 @@
 
 
 
-![e666385ecb10133d2c4dfeb77a2c6a5](C:\Users\Yunqing\AppData\Local\Temp\WeChat Files\e666385ecb10133d2c4dfeb77a2c6a5.png)
+![e666385ecb10133d2c4dfeb77a2c6a5](https://github.com/YunqingRecord/Google-Vision-Kit/blob/master/88.png)
 
 
 
