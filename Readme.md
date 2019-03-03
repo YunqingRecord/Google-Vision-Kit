@@ -18,7 +18,7 @@
 
 #### Using Numpy to finish the procedure of Inference forward, and calculate the result then push the result on the mentioned WeChat Chatting Room automatically.
 
-![11](C:\Users\Yunqing\Desktop\11.jpg)
+![11](https://github.com/YunqingRecord/Google-Vision-Kit/blob/master/11.jpg)
 
 ## The video address is as follow:
 
