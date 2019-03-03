@@ -2,7 +2,7 @@
 
 
 
-![2c444a5bc1fedc274dce3dab5270279](C:\Users\Yunqing\AppData\Local\Temp\WeChat Files\2c444a5bc1fedc274dce3dab5270279.png)
+![2c444a5bc1fedc274dce3dab5270279](https://github.com/YunqingRecord/Google-Vision-Kit/blob/master/4.png)
 
 ## So, transfer the model on the re-constructed dataset to retrain the network.
 
