@@ -1,4 +1,4 @@
-## The trained MNIST model performed poor on the new written number by hand
+##  Find inner Problem, which is always ignored by everyone: The trained MNIST model performed poor on the new written number by hand
 
 
 
