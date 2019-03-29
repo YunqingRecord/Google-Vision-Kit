@@ -1,49 +1,65 @@
+'''
+---------------------------------------------------------------------------
+The Inference Computation Function:
 
-# coding: utf-8
-
-# ## 网络基本组件
+An imitation of model prediction process in TensorFlow/Keras,
+trying to solve the problem of unsuccessfully installation of TensorFlow
+---------------------------------------------------------------------------
+Whole steps:
+1. Read the Weights from stored <.npy> files of different layer
+2. Start from input tensor, make some data augmentation
+3. Calculate the value layer by layer
+4. Output the Result
+5. In demo.py, the Result from Inference Engine will be as output to WeChat
+---------------------------------------------------------------------------
+'''
 
 import numpy as np
-
-# In[144]:
+from PIL import Image, ImageOps
 
 
 class Recognizer():
     def __init__(self):
-        self.conv_weights = np.load('model/weights/conv_weights.npy')
-        self.conv_bias = np.load('model/weights/conv_bias.npy')
-        self.fc1_weights = np.load('model/weights/fc1_weights.npy')
-        self.fc1_bias = np.load('model/weights/fc1_bias.npy')
-        self.fc2_weights = np.load('model/weights/fc2_weights.npy')
-        self.fc2_bias = np.load('model/weights/fc2_bias.npy')
+        self.conv_weights1 = np.load(r'C:\Users\Yunqing\Desktop\cnn_weights_1.npy')
+        self.conv_bias1 = np.load(r'C:\Users\Yunqing\Desktop\cnn_bias_1.npy')
+        self.conv_weights2 = np.load(r'C:\Users\Yunqing\Desktop\cnn_weights_2.npy')
+        self.conv_bias2 = np.load(r'C:\Users\Yunqing\Desktop\cnn_bias_2.npy')
+        self.fc_weights1 = np.load(r'C:\Users\Yunqing\Desktop\fc_weights_1.npy')
+        self.fc_bias1 = np.load(r'C:\Users\Yunqing\Desktop\fc_bias_1.npy')
+        self.fc_weights2 = np.load(r'C:\Users\Yunqing\Desktop\fc_weights_2.npy')
+        self.fc_bias2 = np.load(r'C:\Users\Yunqing\Desktop\fc_bias_2.npy')
         
     def predict(self, x, img_enhance=False):
-        x = x.reshape((28,28,1))
         x = x / 255.0
         if img_enhance:
             x = self.enhancement(x)
         output = self.Inference(x)
-        label = int(np.where(output==np.max(output))[1])
+        label = int(np.where(output == np.max(output))[1])
+
+        return output, label
         
-        return  output,label
-        
-    def Inference(self,x):
-        x = self.Conv2D(x, self.conv_weights, self.conv_bias, strides=(1,1))
-        x = self.Relu(x)
-        x = self.Max_pooling(x, kernel_size=(2,2), strides=(2,2))
+    def Inference(self, x):
         x = self.Flatten(x)
-        x = self.Dense(x, self.fc1_weights, self.fc1_bias)
+
+        x = self.Dense(x, self.conv_weights1, self.conv_bias1)
         x = self.Relu(x)
-        x = self.Dense(x, self.fc2_weights, self.fc2_bias) 
+
+        x = self.Dense(x, self.conv_weights2, self.conv_bias2)
+        x = self.Relu(x)
+
+        x = self.Dense(x, self.fc_weights1, self.fc_bias1)
+        x = self.Relu(x)
+
+        x = self.Dense(x, self.fc_weights2, self.fc_bias2)
         x = self.Normalization(x)
         return x
     
     def Relu(self, x):
-        x[x<0] = 0
+        x[x < 0] = 0
         return x
         
     def Flatten(self, x):
-        # 将输入张量resize到(1,n)形式
+        # Resize input Tensor to (1,n) shape
         x = x.reshape(1,-1)
         return x
     
@@ -54,58 +70,61 @@ class Recognizer():
         return y
     
     def Conv2D(self, inputs, kernels, biases, strides=(1,1)):
-        # 计算输入张量的维度以[heigh,width,channel], 卷积核的维度以[heigh,width,channel,k]
+        # input Tensor dimension as [heigh,width,channel]
         input_size = inputs.shape
+        # kernel size dimension as [heigh,width,channel,k]
         kernel_size = kernels.shape
-        # 对输入张量按照卷积核的尺寸进行pading
+        # padding the input tensor according to the kernel size
         h_pad = int(kernel_size[0] / 2)
         w_pad = int(kernel_size[1] / 2)
         inputs = np.pad(inputs, pad_width=((h_pad,h_pad),(w_pad,w_pad),(0,0)), mode='constant')
-        # 计算输出张量的维度，并初始化输出张量
+        # compute the dimension of output tensor
         w_new = int((input_size[0] - kernel_size[0] + 2*h_pad) / strides[0] + 1)
         h_new = int((input_size[1] - kernel_size[1] + 2*w_pad) / strides[1] + 1)
+        # initialize the output tensor with calculated dimension
         outputs = np.zeros((w_new,h_new,kernels.shape[3]))
-        # 按通道k逐层卷积
-        for k in range(kernel_size[3]):
-            # (i_new,j_new)代表该步在输出张量中对应的位置，(i,j)代表该步中以输入张量(i,j)为中心的窗口位置
+        # convolution with channel k 
+        for k in range(kernel_size[3]): # (i_new,j_new)represents the place this step in the output tensor
+            #  (i,j)represents the window place in this step, by the center of (i,j)
             for i_new,i in enumerate(range(h_pad, inputs.shape[0]-h_pad, strides[0])):
-                for j_new,j in enumerate(range(w_pad, inputs.shape[1]-w_pad, strides[1])):
-                    # temp代表当前位置的滑动窗口所取的值
+                for j_new, j in enumerate(range(w_pad, inputs.shape[1]-w_pad, strides[1])):
+                    # temp represents the computed value in the temporary window.
                     temp = inputs[i-h_pad:i+h_pad+1, j-w_pad:j+w_pad+1, :]
                     temp = self.Flatten(temp)
-                    # kernel代表当前第k个卷积核
+                    # kernel represents the k th kernel 
                     kernel = self.Flatten(kernels[:,:,:,k])
-                    # 计算当前窗口的卷积值，并赋值到输出张量中
+                    # compute the temporary value, then output to the tensor
+                    # compute the temporary value, then output to the tensor
                     value = np.dot(temp, kernel.T) + biases[k]
                     outputs[i_new,j_new, k] = value
 
         return outputs
     
     def Max_pooling(self, x, kernel_size=(2,2), strides=(2,2)):
-        # 计算输出张量的尺寸
+        # compute the dimension of output tensor
         width, heigh, channel = x.shape
-        # 按照kernel_size和strides创建输出张量
+        # initialize the output tensor depending onkernel_size and strides
         w_new = int((width - kernel_size[0]) / strides[0] + 1)
         h_new = int((heigh - kernel_size[1]) / strides[1] + 1)
         c_new = channel
         outputs = np.zeros((w_new,h_new, c_new))
-        # 按通道k逐层池化
+        # pooling by layers, depends on the channel k
         for k in range(channel):
-            # (i_new,j_new)为输出张量中的坐标，(i,j)为输入张量中对应的坐标
+            # (i_new,j_new) as coordinates in output tensor
             for i_new,i in enumerate(range(0, width, strides[0])):
                 for j_new,j in enumerate(range(0, heigh, strides[1])):
-                    # 以(i,j)坐标为左上角，取局部窗口内的值
+                    # (i,j)as coordinates of input tensor
                     temp = x[i:i+kernel_size[0],j:j+kernel_size[1]]
-                    # 提取当前窗口内的最大值
-                    outputs[i_new,j_new,k] = np.max(temp)
+                    # (i,j)as upper left, extract the local largest value
+                    outputs[i_new, j_new,k] = np.max(temp)
 
         return outputs
     
     def Dense(self, inputs, kernel, bias):  
-        # 规范输入张量及bias的维度为(1,n)
+        # Initialize the dimension of input tensor and bias as (1,n)
         inputs = inputs.reshape(1,-1)
         bias = bias.reshape(1,-1)
-        # 向量化形式计算当前层的输出值
+        # vectorize the output tensor
         output = np.dot(inputs, kernel) + bias
 
         return output
@@ -116,3 +135,12 @@ class Recognizer():
         x[x<mean] = 0.0
         return x
 
+
+model = Recognizer()
+if __name__ == '__main__':
+    # Use a photo to test the result
+    x = (Image.open(r'C:\Users\Yunqing\Desktop\F\Fruit_Data\Fruit_data\val\xj\IMG_1015.jpg'))
+    x = x.resize((50, 50))
+    x = np.array(x)
+    y = model.predict(x)
+    print(y)
